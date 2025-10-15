@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quay số may mắn</title>
+    <style>
+        body {
+    background-color: #f0f2f5;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.lucky-draw-container {
+    text-align: center;
+    background-color: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.lock-dial-display {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    perspective: 500px; /* Thêm hiệu ứng 3D */
+}
+
+.spinner {
+    height: 100px;
+    width: 60px;
+    background-color: #34495e;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.number {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+    font-size: 48px;
+    color: white;
+    font-weight: bold;
+    transition: transform 0.1s; /* Giảm thời gian chuyển động để mượt hơn */
+}
+
+.result-message {
+    font-size: 24px;
+    font-weight: bold;
+    color: #27ae60;
+    margin-top: 20px;
+    min-height: 30px; /* Giữ không gian cho thông báo */
+}
+
+#spin-btn {
+    background-color: #e74c3c;
+    color: white;
+    font-size: 20px;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#spin-btn:hover {
+    background-color: #c0392b;
+}
+
+#spin-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+    </style>
+</head>
+<body>
+    <div class="lucky-draw-container">
+        <h1>Vòng quay may mắn</h1>
+        <div class="lock-dial-display">
+            <!-- Mỗi spinner là một ô số -->
+            <div id="spinner-1" class="spinner"></div>
+            <div id="spinner-2" class="spinner"></div>
+            <div id="spinner-3" class="spinner"></div>
+            <div id="spinner-4" class="spinner"></div>
+        </div>
+        <button id="spin-btn">Quay số</button>
+        <div id="result" class="result-message"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+    const spinBtn = document.getElementById('spin-btn');
+    const resultEl = document.getElementById('result');
+    const digits = 4;
+    const spinners = [];
+
+    // Khởi tạo các spinner với các số từ 0 đến 9
+    function createSpinner(spinnerId) {
+        const spinner = document.getElementById(spinnerId);
+        const numberDivs = [];
+        for (let i = 0; i < 20; i++) { // Tạo nhiều số để có hiệu ứng quay
+            const numberDiv = document.createElement('div');
+            numberDiv.className = 'number';
+            numberDiv.innerText = i % 10;
+            spinner.appendChild(numberDiv);
+            numberDivs.push(numberDiv);
+        }
+        return { element: spinner, numbers: numberDivs };
+    }
+
+    for (let i = 1; i <= digits; i++) {
+        spinners.push(createSpinner(`spinner-${i}`));
+    }
+
+    // Logic quay số
+    spinBtn.addEventListener('click', () => {
+        spinBtn.disabled = true;
+        resultEl.innerText = '';
+        const winningNumber = generateWinningNumber(digits);
+
+        spinners.forEach((spinner, index) => {
+            const finalDigit = parseInt(winningNumber[index]);
+            const numberHeight = spinner.numbers[0].offsetHeight;
+            const spinDuration = 3000 + index * 500; // Quay lâu hơn cho các ô sau
+
+            // Tính toán vị trí cuối cùng
+            const totalNumbers = spinner.numbers.length;
+            const targetPosition = (totalNumbers - 10 + finalDigit) * -numberHeight;
+
+            spinner.element.style.transition = `transform ${spinDuration / 1000}s ease-out`;
+            spinner.element.style.transform = `translateY(${targetPosition}px)`;
+
+            // Dừng quay sau khi hết thời gian
+            setTimeout(() => {
+                if (index === digits - 1) {
+                    spinBtn.disabled = false;
+                    resultEl.innerText = `Chúc mừng, bạn đã trúng mã số: ${winningNumber}`;
+                }
+            }, spinDuration);
+        });
+    });
+
+    // Tạo số ngẫu nhiên cho kết quả
+    function generateWinningNumber(length) {
+        let number = '';
+        for (let i = 0; i < length; i++) {
+            number += Math.floor(Math.random() * 10);
+        }
+        return number;
+    }
+});
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Event Delegation Demo</title>
+    <style>
+        #a { border: 2px solid blue; padding: 10px; }
+        .b { border: 1px solid green; padding: 8px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2>Container A</h2>
+    <div id="a">
+        <div class="b">B Element 1 (Existing)</div>
+        <div class="b">B Element 2 (Existing)</div>
+        <div>Some other div (not .b)</div>
+    </div>
+
+    <button id="addNew">Add New .b Element</button>
+
+    <script>
+        // --- Code Event Delegation ---
+        const parentElementA = document.querySelector('#a');
+
+        parentElementA.addEventListener('click', function(event) {
+            const clickedB_Element = event.target.closest('.b');
+
+            if (clickedB_Element) {
+                // `event.currentTarget` là #a (nơi listener được gắn vào)
+                // `event.target` là phần tử chính xác được click
+                // `clickedB_Element` là phần tử .b mà chúng ta quan tâm
+                console.log('Clicked target:', event.target);
+                console.log('Delegated to:', clickedB_Element.textContent);
+                alert(`You clicked on: ${clickedB_Element.textContent}`);
+            }
+        });
+
+        // --- Code để thêm phần tử động ---
+        const addButton = document.querySelector('#addNew');
+        let counter = 3;
+        addButton.addEventListener('click', function() {
+            const newB = document.createElement('div');
+            newB.className = 'b';
+            newB.textContent = `B Element ${counter++} (Dynamic)`;
+            parentElementA.appendChild(newB);
+        });
+    </script>
+</body>
+</html>

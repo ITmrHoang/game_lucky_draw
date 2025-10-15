@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Ổ Khóa Số 3D — Combination Lock</title>
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at center, #1b1e26 0%, #0a0c11 100%);
+  font-family: "Segoe UI", sans-serif;
+  perspective: 1000px;
+}
+
+.lock {
+  display: flex;
+  gap: 16px;
+  padding: 30px 40px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #1c1f27, #090b0f);
+  box-shadow: inset 2px 2px 6px rgba(255,255,255,0.05),
+              inset -4px -4px 8px rgba(0,0,0,0.6),
+              6px 6px 25px rgba(0,0,0,0.8);
+}
+
+.wheel {
+  position: relative;
+  width: 80px;
+  height: 140px;
+  border-radius: 12px;
+  background: linear-gradient(180deg,#2e323b 0%,#1a1d23 100%);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  cursor: grab;
+  perspective: 800px;
+}
+
+.ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-style: preserve-3d;
+  transform: translate(-50%, -50%) rotateX(0deg);
+  transition: transform 0.2s ease-out;
+}
+
+.digit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center -60px;
+  transform: rotateX(var(--angle)) translate(-50%, -50%);
+  font-size: 28px;
+  font-weight: bold;
+  color: #e9edf6;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.indicator {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 40px;
+  background: #e91e63;
+  border-radius: 2px;
+  box-shadow: 0 0 10px #e91e63;
+}
+</style>
+</head>
+<body>
+
+<div class="lock">
+  <div class="indicator"></div>
+  <div class="wheel" data-index="0"></div>
+  <div class="wheel" data-index="1"></div>
+  <div class="wheel" data-index="2"></div>
+</div>
+
+<script>
+const wheels = document.querySelectorAll('.wheel');
+const DIGITS = 10;
+
+wheels.forEach(wheel => {
+  const ring = document.createElement('div');
+  ring.className = 'ring';
+  for (let i = 0; i < DIGITS; i++) {
+    const d = document.createElement('div');
+    d.className = 'digit';
+    const angle = (360 / DIGITS) * i;
+    d.style.setProperty('--angle', `${angle}deg`);
+    d.textContent = i;
+    ring.appendChild(d);
+  }
+  wheel.appendChild(ring);
+
+  let rotation = 0;
+  let startY = 0;
+  let velocity = 0;
+  let isDragging = false;
+  let lastTime = 0;
+
+  function setRotation(deg) {
+    rotation = ((deg % 360) + 360) % 360; // wrap around
+    ring.style.transform = `translate(-50%, -50%) rotateX(${rotation}deg)`;
+  }
+
+  function snap() {
+    const step = 360 / DIGITS;
+    const nearest = Math.round(rotation / step) * step;
+    animateRotation(rotation, nearest);
+    const digit = (DIGITS - Math.round(nearest / step)) % DIGITS;
+    console.log('Wheel', wheel.dataset.index, '→', digit);
+  }
+
+  function animateRotation(from, to) {
+    const start = performance.now();
+    const duration = 250;
+    function animate(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+      const cur = from + (to - from) * eased;
+      setRotation(cur);
+      if (t < 1) requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  }
+
+  const onDown = e => {
+    isDragging = true;
+    startY = e.clientY || e.touches[0].clientY;
+    lastTime = performance.now();
+    wheel.style.cursor = 'grabbing';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onUp);
+  };
+
+  const onMove = e => {
+    if (!isDragging) return;
+    const y = e.clientY || e.touches[0].clientY;
+    const dy = y - startY;
+    startY = y;
+    const now = performance.now();
+    const dt = now - lastTime;
+    lastTime = now;
+    const step = 360 / DIGITS;
+    const delta = (dy / 40) * step;
+    setRotation(rotation + delta);
+    velocity = delta / (dt / 16);
+  };
+
+  const onUp = () => {
+    isDragging = false;
+    wheel.style.cursor = 'grab';
+    inertia();
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onUp);
+  };
+
+  function inertia() {
+    if (Math.abs(velocity) < 0.01) {
+      snap();
+      return;
+    }
+    setRotation(rotation + velocity);
+    velocity *= 0.96;
+    requestAnimationFrame(inertia);
+  }
+
+  wheel.addEventListener('mousedown', onDown);
+  wheel.addEventListener('touchstart', onDown);
+
+  setRotation(0);
+});
+</script>
+
+</body>
+</html>

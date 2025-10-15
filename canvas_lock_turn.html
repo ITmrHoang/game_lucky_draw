@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Lucky Draw - Canvas Vặn Khóa</title>
+  <style>
+    body { background: linear-gradient(#2b1020,#4b1f2b); color:#fff; font-family: Inter, Arial; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+    .wrap { width:900px; max-width:95%; text-align:center; }
+    canvas { display:block; margin:20px auto; background:transparent; }
+    #controls { display:flex; gap:10px; justify-content:center; margin-top:10px; }
+    button { padding:10px 18px; border-radius:10px; border:none; cursor:pointer; font-weight:600; }
+    .spin { background:#0ea5a4; color:#032; }
+    .simulate { background:#f59e0b; color:#2b1a00; }
+    .info { margin-top:6px; font-size:14px; opacity:.9; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Canvas — Hiệu ứng vặn khóa</h2>
+    <canvas id="wheel" width="800" height="240"></canvas>
+    <div id="controls">
+      <button id="spinBtn" class="spin">Quay (Spin)</button>
+      <button id="demoTarget" class="simulate">Demo: Chỉ định target "53764"</button>
+    </div>
+    <div class="info">Gợi ý: thay hàm <code>getTargetFromServer()</code> bằng fetch tới API của bạn để lấy số/ID trúng.</div>
+  </div>
+
+<script>
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+
+const W = canvas.width;
+const H = canvas.height;
+const centerY = H/2;
+const slotCount = 7; // số ô hiển thị ngang
+const slotW = 90;
+const slotGap = 12;
+const totalWidth = slotCount*slotW + (slotCount-1)*slotGap;
+const startX = (W - totalWidth)/2;
+
+let running = false;
+let velocity = 0;        // pixels per frame
+let position = 0;        // px offset of the scroller
+let targetValue = null;  // string to land on (e.g. "953564")
+let items = [];          // pool of visible items for animation (strings)
+
+function initItems(){
+  // Trong app thực tế, items sẽ là danh sách số/ID từ DB
+  items = [];
+  // tạo pool ví dụ gồm 0-9 và một số số dài giả lập
+  for(let i=0;i<100;i++){
+    items.push((''+Math.floor(Math.random()*10)));
+  }
+}
+initItems();
+
+// Vẽ UI: viền, background, ô
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // shadow / panel
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  roundRect(ctx, startX-18, centerY-80, totalWidth+36, 160, 18, true, false);
+
+  // highlight center marker
+  const centerX = W/2;
+  ctx.fillStyle = 'rgba(255,215,100,0.12)';
+  roundRect(ctx, centerX - slotW/2 - 8, centerY-82, slotW + 16, 164, 14, true, false);
+
+  // draw slots
+  for(let i=0;i<slotCount;i++){
+    const x = startX + i*(slotW + slotGap);
+    // compute which item is at this slot based on position (cyclic)
+    const px = position / (slotW + slotGap); // fractional index offset
+    const idx = Math.floor(px) + i;
+    const displayIndex = mod(idx, items.length);
+    const val = items[displayIndex];
+
+    // compute y-offset subtle 3D tilt effect
+    const tilt = Math.sin( (i - (slotCount-1)/2 ) * 0.6 ) * 6;
+
+    // slot box
+    ctx.save();
+    // box
+    ctx.fillStyle = '#2b2b40';
+    roundRect(ctx, x, centerY - 44 + tilt, slotW, 88, 10, true, false);
+    // inner
+    ctx.fillStyle = 'linear-gradient(0, #111, #333)';
+
+    // text
+    ctx.fillStyle = '#f3f4f6';
+    ctx.font = 'bold 36px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(val, x + slotW/2, centerY + tilt);
+    ctx.restore();
+  }
+
+  // top label like gold badge
+  ctx.fillStyle = '#ffc107';
+  roundRect(ctx, centerX - 80, centerY - 120, 160, 28, 10, true, false);
+  ctx.fillStyle = '#2b1a00';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('GOLD PRIZE', centerX, centerY - 103);
+}
+
+// helpers
+function roundRect(ctx, x, y, w, h, r, fill, stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+  if(fill) ctx.fill();
+  if(stroke){ ctx.stroke(); }
+}
+
+function mod(n,m){ return ((n%m)+m)%m; }
+
+// animation loop
+function loop(){
+  // friction/inertia model
+  if (Math.abs(velocity) > 0.02){
+    position += velocity;
+    // wrap cleanly
+    if (position > (slotW + slotGap)*items.length*1000) position = position % ((slotW + slotGap)*items.length);
+    if (position < 0) position = position % ((slotW + slotGap)*items.length);
+
+    // braking if we have target and close
+    if (targetValue !== null){
+      // determine which index corresponds to center slot
+      const centerIndex = Math.round(position / (slotW + slotGap));
+      // find nearest index among items where value equals targetValue (we want it to end aligned in center)
+      const desiredIndices = [];
+      for(let i=0;i<items.length;i++) if((''+items[i]) === (''+targetValue)) desiredIndices.push(i);
+      if (desiredIndices.length > 0){
+        // compute distance (in px) from current center to nearest desired occurrence
+        let bestDist = Infinity;
+        for(const di of desiredIndices){
+          // target position for that item to be in center is: di * slotWgap
+          const targetPos = di * (slotW + slotGap);
+          // normalize difference
+          let diff = ((targetPos - position) % ((slotW + slotGap)*items.length));
+          if (diff > (slotW + slotGap)*items.length/2) diff -= (slotW + slotGap)*items.length;
+          if (Math.abs(diff) < Math.abs(bestDist)) bestDist = diff;
+        }
+        // if close, start heavy braking
+        const distancePx = bestDist;
+        // braking policy: when close & slow -> snap; else reduce velocity
+        if (Math.abs(distancePx) < 300) {
+          // gently reduce velocity proportionally to distance
+          velocity *= 0.92;
+        } else {
+          velocity *= 0.985;
+        }
+        // if nearly stopped and near target, snap-to
+        if (Math.abs(velocity) < 0.08 && Math.abs(distancePx) < 8){
+          // snap to exact target position
+          position = position + distancePx;
+          velocity = 0;
+          running = false;
+          // done: clear target to allow future spins
+          // do a small celebration
+          flashWinner();
+        }
+      } else {
+        // if target not found in pool (rare), just slow normally
+        velocity *= 0.97;
+      }
+    } else {
+      // no target: natural friction
+      velocity *= 0.985;
+      if (Math.abs(velocity) < 0.02) { velocity = 0; running = false; }
+    }
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// "celebrate" little effect
+function flashWinner(){
+  const original = canvas.style.boxShadow;
+  canvas.style.boxShadow = "0 0 20px 6px rgba(255,215,100,0.45)";
+  setTimeout(()=> canvas.style.boxShadow = original, 900);
+}
+
+// Spin control: starts with an initial force and optionally target
+function startSpin(withTarget){
+  if (running) return;
+  running = true;
+  targetValue = null;
+  // if withTarget true -> resolve target from server (simulate or fetch)
+  const p = withTarget ? getTargetFromServer() : Promise.resolve(null);
+
+  p.then(t => {
+    if (t) targetValue = ''+t; // string
+    // ensure pool contains the target at several positions for chance of landing
+    if (targetValue) {
+      // inject target multiple times at random positions in items array to ensure findable
+      for(let k=0;k<7;k++){
+        items.splice(Math.floor(Math.random()*items.length), 0, targetValue);
+      }
+    }
+
+    // initial kick: velocity px/frame. set larger for longer spin
+    // choose random initial velocity
+    velocity = (10 + Math.random()*12) * (Math.random()>0.5 ? 1 : -1) ; // allow both directions
+    // to make it always move left-to-right, set positive value
+    if (velocity < 0) velocity = -velocity;
+
+    // soon after, we may apply extra slow-down scheduling to feel natural
+    // running true and loop() handles friction & target braking
+  });
+}
+
+// Simulated server call: return a target string or null
+function getTargetFromServer(){
+  // === REPLACE HERE with fetch('/api/get_winner.php') and parse json result ===
+  return new Promise(resolve => {
+    // simulate network delay
+    setTimeout(()=> {
+      // simulated: random multi-digit number as string (e.g., user number)
+      const demo = Math.random() < 0.6 ? null : ('' + (10000 + Math.floor(Math.random()*90000))); // 40% chance of assigned target
+      resolve(demo);
+    }, 500);
+  });
+}
+
+// Demo button to force a certain target
+document.getElementById('demoTarget').addEventListener('click', ()=>{
+  // put a visible multi-digit target into items and force spin to it
+  const forced = '53764';
+  // ensure pool has the target
+  for(let k=0;k<8;k++) items.splice(Math.floor(Math.random()*items.length), 0, forced);
+  startSpin(true);
+  // override getTargetFromServer to return forced immediately
+  // (quick hack for demo)
+  getTargetFromServer = () => Promise.resolve(forced);
+});
+
+// Attach spin button
+document.getElementById('spinBtn').addEventListener('click', ()=> startSpin(true));
+
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<title>Lucky Draw - CSS 3D Wheel</title>
+<style>
+  :root { --size: 420px; }
+  body { background: linear-gradient(#1b1b2f,#3b1f2b); display:flex; align-items:center; justify-content:center; min-height:100vh; color:#fff; font-family:Inter, Arial; margin:0; }
+  .container { text-align:center; }
+  .wheel-wrap { perspective: 1200px; margin: 18px auto; width:var(--size); height:var(--size); position:relative; }
+  .wheel {
+    width:100%; height:100%; border-radius:50%;
+    transform-style:preserve-3d;
+    transition: transform 5s cubic-bezier(.16,.84,.38,1); /* will be updated dynamically */
+    box-shadow: 0 18px 40px rgba(2,6,23,.6), inset 0 6px 20px rgba(255,255,255,.02);
+    background: conic-gradient(#111 0deg, #1f2937 90deg, #111 180deg, #374151 270deg);
+  }
+  .pointer {
+    width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:24px solid #ffd54a;
+    position:absolute; left:50%; transform:translateX(-50%); top:-12px; z-index:20; filter:drop-shadow(0 6px 6px rgba(0,0,0,.6));
+  }
+  .centerBadge { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:15; width:120px; height:120px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:linear-gradient(#ffe27a,#ffbb00); color:#2b1a00; font-weight:800; }
+  .spin-btn { margin-top:12px; padding:10px 16px; border-radius:8px; border:none; cursor:pointer; background:#06b6d4; color:#012; font-weight:700; }
+
+  /* slices display (labels) by absolute positioned elements rotated around center */
+  .slice-label { position:absolute; left:50%; top:50%; transform-origin: 0 -160px; width:120px; text-align:center; color:#fff; font-weight:700; text-shadow:0 1px 0 rgba(0,0,0,.6); pointer-events:none;}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>CSS 3D Wheel — Quay số</h2>
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <div id="wheel" class="wheel"></div>
+      <div class="centerBadge">LUCK</div>
+    </div>
+    <button id="spin" class="spin-btn">Quay</button>
+    <div style="height:10px"></div>
+    <div id="log" style="opacity:.9; font-size:14px"></div>
+  </div>
+
+<script>
+// slices: danh sách giải/nhãn trên vòng
+const slices = [
+  'GOLD', 'SILVER', 'BRONZE', '4TH', '5TH', '6TH', '7TH', '8TH'
+];
+
+const wheel = document.getElementById('wheel');
+const spinBtn = document.getElementById('spin');
+const log = document.getElementById('log');
+
+const sliceCount = slices.length;
+const sliceAngle = 360 / sliceCount;
+
+// draw visual segments (simple colored sectors + labels)
+function buildWheel(){
+  const colors = ['#d97706','#b91c1c','#1e40af','#065f46','#7c3aed','#c026d3','#0891b2','#f97316'];
+  // create gradient that imitates slices
+  let gradParts = [];
+  for(let i=0;i<sliceCount;i++){
+    const a0 = i*sliceAngle;
+    const a1 = (i+1)*sliceAngle;
+    gradParts.push(`${colors[i%colors.length]} ${a0}deg ${a1}deg`);
+  }
+  wheel.style.background = `conic-gradient(${gradParts.join(',')})`;
+
+  // add labels positioned around the circle
+  // remove old labels
+  Array.from(document.querySelectorAll('.slice-label')).forEach(n => n.remove());
+  for(let i=0;i<sliceCount;i++){
+    const label = document.createElement('div');
+    label.className = 'slice-label';
+    const angle = i * sliceAngle + sliceAngle/2;
+    label.style.transform = `rotate(${angle}deg) translate(-50%, -50%)`;
+    label.style.left = '50%';
+    label.style.top = '50%';
+    label.innerHTML = `<div style="transform: rotate(${90 - angle}deg); width:140px">${slices[i]}</div>`;
+    wheel.parentElement.appendChild(label);
+  }
+}
+buildWheel();
+
+// easing helper (we'll still use CSS transition for main animation)
+function spinToSlice(targetIndex){
+  // compute minimal rotation so that the target slice aligns with pointer (pointer at top = -90deg)
+  // If we want slice center to point at top, slice center angle = targetIndex*sliceAngle + sliceAngle/2
+  const targetCenter = targetIndex * sliceAngle + sliceAngle/2;
+  // CSS rotation is clockwise positive, pointer at top corresponds to rotation where targetCenter -> 270deg
+  // we want wheel rotation so that targetCenter + rotation = 270 (mod 360) => rotation = 270 - targetCenter (mod 360)
+  const baseRotation = (270 - targetCenter) % 360;
+  // add full spins for dramatic effect:
+  const extraSpins = 3 + Math.floor(Math.random()*3); // 3..5 full rotations
+  const finalDeg = baseRotation + extraSpins * 360;
+  // set transition duration moderately long
+  const duration = 4 + Math.random()*2; // seconds
+  wheel.style.transition = `transform ${duration}s cubic-bezier(.18,.85,.25,1)`; // easeOut-ish
+  wheel.style.transform = `rotate(${finalDeg}deg)`;
+  // after transition end, compute normalized final index (for logging)
+  setTimeout(()=> {
+    // compute landed slice index from finalDeg
+    const normalized = ((finalDeg % 360) + 360) % 360;
+    // compute which slice is at center position (pointer)
+    // pointer hits angle 270 in wheel coordinates => find slice whose center equals 270 - (finalDeg mod 360)
+    const wheelAngleAtPointer = (270 - normalized + 360) % 360;
+    const landedIndex = Math.floor( (wheelAngleAtPointer) / sliceAngle ) % sliceCount;
+    log.innerText = `Kết quả: ${slices[landedIndex]} (index ${landedIndex})`;
+    // reset transition so future tiny rotations don't animate weirdly
+    wheel.style.transition = '';
+  }, (duration*1000) + 80);
+}
+
+// Hook spin button: get target from server or random
+spinBtn.addEventListener('click', async () => {
+  spinBtn.disabled = true;
+  log.innerText = 'Đang lấy mục tiêu từ server…';
+  // === REPLACE this part by fetch('/api/get_winner.php') ===
+  // fake server delay:
+  await new Promise(r=>setTimeout(r, 600));
+  // Suppose server returns a prize name or index; simulated here:
+  const serverResponse = Math.random()<0.6 ? null : { prize: 'GOLD' }; // 40% chance to force
+  let targetIndex = null;
+  if (serverResponse && serverResponse.prize){
+    targetIndex = slices.indexOf(serverResponse.prize);
+    if (targetIndex < 0) targetIndex = Math.floor(Math.random()*sliceCount);
+    log.innerText = `Mục tiêu nhận từ server: ${serverResponse.prize}`;
+  } else {
+    // random
+    targetIndex = Math.floor(Math.random()*sliceCount);
+    log.innerText = 'Không có target cố định — chọn random';
+  }
+  // little delay to let user see message then spin
+  setTimeout(()=> {
+    spinToSlice(targetIndex);
+    // re-enable button after approx duration (safely later)
+    setTimeout(()=> { spinBtn.disabled = false; }, 6500);
+  }, 500);
+});
+</script>
+</body>
+</html>

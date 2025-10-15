@@ -1,0 +1,154 @@
+Hoàn toàn được nhé ✅ — bạn có thể làm Lucky Draw bằng web PHP + JavaScript thuần và vẫn kết nối database (MySQL) để lấy thông tin trước khi quay.
+
+Dưới đây là kiến trúc và hướng dẫn chi tiết để bạn triển khai:
+
+⚙️ 1. Kiến trúc tổng thể
+
+Frontend (HTML + CSS + JS):
+
+Hiển thị giao diện quay số (slot hoặc vòng quay 3D).
+
+Gửi yêu cầu đến PHP backend để lấy danh sách người chơi, danh sách giải thưởng, và gửi kết quả khi quay xong.
+
+Có thể dùng fetch() để giao tiếp qua AJAX.
+
+Backend (PHP):
+
+Truy vấn MySQL để lấy dữ liệu người tham gia và giải thưởng (participants, prizes, draws).
+
+Cung cấp API dạng JSON (ví dụ get_participants.php, get_prizes.php, save_result.php).
+
+Quản lý logic trúng giải cố định hoặc random.
+
+Database (MySQL):
+Gợi ý cấu trúc:
+
+CREATE TABLE participants (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255),
+  number VARCHAR(50),
+  eligible BOOLEAN DEFAULT 1
+);
+
+CREATE TABLE prizes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255),
+  quantity INT DEFAULT 1,
+  fixed_winner_id INT NULL,
+  FOREIGN KEY (fixed_winner_id) REFERENCES participants(id)
+);
+
+CREATE TABLE draws (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255),
+  draw_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE winners (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  draw_id INT,
+  prize_id INT,
+  participant_id INT,
+  FOREIGN KEY (draw_id) REFERENCES draws(id),
+  FOREIGN KEY (prize_id) REFERENCES prizes(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+💻 2. Cách hoạt động
+
+JS gọi get_participants.php để lấy danh sách người (trước khi quay).
+
+JS gọi get_prizes.php để lấy danh sách giải.
+
+Khi người dùng bấm “Quay số”, JS:
+
+Nếu có giải đặc biệt → lấy người trúng đã cài sẵn.
+
+Nếu là giải thường → random 1 người trong danh sách.
+
+JS hiển thị hiệu ứng quay số (slot/3D).
+
+Sau khi quay xong → gửi fetch("save_result.php") để lưu kết quả vào DB.
+
+🎨 3. Giao diện quay số (JS thuần)
+
+Bạn có thể tạo hiệu ứng như ảnh (ô số chạy rồi chậm dần).
+Ví dụ đơn giản (slot animation):
+
+<div id="slots">
+  <div class="slot">0</div>
+  <div class="slot">0</div>
+  <div class="slot">0</div>
+  <div class="slot">0</div>
+</div>
+
+<button id="spinBtn">Quay số</button>
+
+<style>
+  #slots { display: flex; gap: 10px; justify-content: center; margin: 20px; }
+  .slot { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;
+          background: #222; color: gold; font-size: 32px; border-radius: 10px; }
+</style>
+
+<script>
+let spinning = false;
+
+document.getElementById('spinBtn').onclick = async function() {
+  if (spinning) return;
+  spinning = true;
+  
+  // Gọi API lấy số trúng (hoặc random JS)
+  const res = await fetch('api/get_winner.php');
+  const { number } = await res.json();
+  
+  const slots = document.querySelectorAll('.slot');
+  let ticks = 0;
+  const timer = setInterval(() => {
+    slots.forEach(s => s.textContent = Math.floor(Math.random()*10));
+    ticks++;
+    if (ticks > 40) {
+      clearInterval(timer);
+      const digits = number.toString().split('');
+      slots.forEach((s, i) => s.textContent = digits[i] || '0');
+      spinning = false;
+    }
+  }, 100);
+};
+</script>
+
+
+
+-----------------
+📡 4. PHP API mẫu
+
+get_participants.php
+
+<?php
+include 'db.php';
+$result = $conn->query("SELECT * FROM participants WHERE eligible = 1");
+$rows = $result->fetch_all(MYSQLI_ASSOC);
+echo json_encode($rows);
+
+
+get_winner.php
+
+<?php
+include 'db.php';
+$draw_id = 1; // ví dụ lượt quay hiện tại
+
+// Lấy giải hiện tại
+$prize = $conn->query("SELECT * FROM prizes ORDER BY id ASC LIMIT 1")->fetch_assoc();
+
+if ($prize['fixed_winner_id']) {
+    $winner = $conn->query("SELECT * FROM participants WHERE id = ".$prize['fixed_winner_id'])->fetch_assoc();
+} else {
+    $winner = $conn->query("SELECT * FROM participants ORDER BY RAND() LIMIT 1")->fetch_assoc();
+}
+
+$conn->query("INSERT INTO winners (draw_id, prize_id, participant_id) VALUES ($draw_id, {$prize['id']}, {$winner['id']})");
+
+echo json_encode([
+  'id' => $winner['id'],
+  'name' => $winner['name'],
+  'number' => $winner['number']
+]);

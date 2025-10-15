@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Draw</title>
+    <style>
+         body {
+        font-family: "Poppins", sans-serif;
+        text-align: center;
+        background-color: #1b1b1b;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: #fff;
+      }
+
+      h1 {
+        margin-bottom: 30px;
+        font-size: 48px;
+        color: #f9ca24;
+        text-shadow: 2px 2px 10px rgba(249, 202, 36, 0.6);
+      }
+
+      button {
+        padding: 15px 40px;
+        font-size: 20px;
+        cursor: pointer;
+        background-color: #e84118;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 8px 15px rgba(232, 65, 24, 0.4);
+        transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+      }
+
+      button:hover {
+        background-color: #c23616;
+        transform: scale(1.1);
+        box-shadow: 0 12px 25px rgba(194, 54, 22, 0.6);
+      }
+
+      #result-container {
+        margin-top: 40px;
+        background-color: #222;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+      }
+
+      .digit-box {
+        width: 70px;
+        height: 100px;
+        overflow: hidden;
+        border: 3px solid #f9ca24;
+        border-radius: 10px;
+        position: relative;
+        background-color: #1b1b1b;
+      }
+
+      .spinner-container {
+        height: 100px;
+        width: 70px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .spinner {
+        position: absolute;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: none;
+        transform: translateY(0);
+      }
+
+      .number {
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+        color: #f9ca24;
+        text-shadow: 2px 2px 8px rgba(249, 202, 36, 0.6);
+      }
+
+      @media (max-width: 450px) {
+        .digit-box {
+          width: 50px;
+          height: 70px;
+        }
+
+        .spinner-container {
+          height: 70px;
+          width: 50px;
+        }
+
+        .number {
+          height: 70px;
+          font-size: 40px;
+        }
+      }
+    </style>
+</head>
+<body>
+    <body>
+    <div>
+      <h1>Lucky Draw</h1>
+      <button onclick="drawNumber()">Draw a Number</button>
+      <div id="result-container">
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-1" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-2" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-3" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-4" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-5" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-6" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-7" class="spinner"></div>
+          </div>
+        </div>
+        <div class="digit-box">
+          <div class="spinner-container">
+            <div id="spinner-8" class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+              function createSpinner(spinnerId, digit, delay, isLastDigit) {
+        const spinner = document.getElementById(spinnerId);
+        spinner.innerHTML = "";
+
+        const numberCount = 10; // digits count
+        const loopCount = 5; // No.of loops
+        const spinDuration = 1500; // loop
+        const slowDownDuration = 1500; // slow down
+        const numberHeight = 100; // each number height
+
+        for (let i = 0; i < numberCount * loopCount + digit + 1; i++) {
+          const numberDiv = document.createElement("div");
+          numberDiv.className = "number";
+          numberDiv.innerText = i % numberCount;
+          spinner.appendChild(numberDiv);
+        }
+
+        setTimeout(() => {
+          spinner.style.transition = `transform ${
+            spinDuration * loopCount
+          }ms linear`;
+          spinner.style.transform = `translateY(-${
+            numberCount * loopCount * numberHeight
+          }px)`;
+
+          setTimeout(() => {
+            spinner.style.transition = `transform ${slowDownDuration}ms ease-out`;
+            const targetPosition =
+              (numberCount * loopCount + digit) * numberHeight;
+            spinner.style.transform = `translateY(-${targetPosition}px)`;
+
+            if (isLastDigit) {
+              spinner.addEventListener("transitionend", function onEnd() {
+                console.log("Spin ended for digit " + digit);
+                spinner.removeEventListener("transitionend", onEnd);
+                onSpinEnd();
+              });
+            }
+          }, spinDuration * loopCount);
+        }, delay);
+      }
+
+      function resetSpinners() {
+        const spinners = document.querySelectorAll(".spinner");
+        spinners.forEach((spinner) => {
+          spinner.style.transition = "none";
+          spinner.style.transform = "translateY(0)";
+          spinner.innerHTML = "";
+        });
+      }
+
+      function drawNumber() {
+        resetSpinners();
+
+        const numbers = [49226590];
+        const selectedNumber = numbers[0].toString().split("");
+
+        selectedNumber.forEach((digit, index) => {
+          const delay = index * 3000;
+          createSpinner(
+            `spinner-${index + 1}`,
+            parseInt(digit),
+            delay,
+            index === selectedNumber.length - 1
+          );
+        });
+      }
+
+      function onSpinEnd() {
+        console.log("All spins have ended. Final number revealed.");
+        // Additional actions can be performed here.
+      }
+   
+    </script>
+  </body>
+</body>
+</html>

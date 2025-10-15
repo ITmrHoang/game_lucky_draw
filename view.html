@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Combination Lock Dial</title>
+<style>
+body {
+  background: radial-gradient(circle at center, #2a2f3a 0%, #10131a 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.lock {
+  display: flex;
+  gap: 10px;
+  padding: 20px 30px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #20232a, #101218);
+  box-shadow: inset 2px 2px 6px rgba(255,255,255,0.05),
+              inset -3px -3px 8px rgba(0,0,0,0.5),
+              4px 4px 20px rgba(0,0,0,0.6);
+}
+
+.wheel {
+  position: relative;
+  width: 60px;
+  height: 120px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(180deg,#30343c 0%,#1a1d23 100%);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.7);
+  cursor: grab;
+}
+
+.numbers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  transition: transform 0.3s cubic-bezier(.3,.9,.3,1);
+}
+
+.numbers div {
+  height: 40px;
+  line-height: 40px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #e0e4ec;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+}
+
+.wheel::before, .wheel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  z-index: 2;
+  pointer-events: none;
+}
+.wheel::after {
+  top: auto;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+}
+
+.indicator {
+  position: absolute;
+  top: 50%;
+  left: -6px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 30px;
+  background: #e91e63;
+  border-radius: 2px;
+  box-shadow: 0 0 6px #e91e63;
+}
+</style>
+</head>
+<body>
+
+<div class="lock">
+  <div class="indicator"></div>
+  <div class="wheel" data-index="0"></div>
+  <div class="wheel" data-index="1"></div>
+  <div class="wheel" data-index="2"></div>
+</div>
+
+<script>
+const wheels = document.querySelectorAll('.wheel');
+wheels.forEach(wheel => {
+  const nums = document.createElement('div');
+  nums.className = 'numbers';
+  for (let i = 0; i < 20; i++) {
+    const n = document.createElement('div');
+    n.textContent = i % 10;
+    nums.appendChild(n);
+  }
+  wheel.appendChild(nums);
+
+  let offset = 0;
+  let startY = 0;
+  let current = 0;
+
+  const update = () => {
+    nums.style.transform = `translateY(${-offset}px)`;
+  };
+
+  const snap = () => {
+    const pos = Math.round(offset / 40);
+    offset = pos * 40;
+    if (offset < 0) offset = 0;
+    if (offset > 360) offset = 360;
+    current = (pos % 10 + 10) % 10;
+    update();
+  };
+
+  const onDown = e => {
+    startY = e.clientY || e.touches[0].clientY;
+    wheel.style.cursor = 'grabbing';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onUp);
+  };
+
+  const onMove = e => {
+    const y = e.clientY || e.touches[0].clientY;
+    const dy = startY - y;
+    offset += dy;
+    startY = y;
+    if (offset < 0) offset = 400;
+    if (offset > 400) offset = 0;
+    update();
+  };
+
+  const onUp = () => {
+    wheel.style.cursor = 'grab';
+    snap();
+    console.log('Wheel', wheel.dataset.index, 'selected', current);
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onUp);
+  };
+
+  wheel.addEventListener('mousedown', onDown);
+  wheel.addEventListener('touchstart', onDown);
+
+  // init position
+  offset = 0;
+  update();
+});
+</script>
+
+</body>
+</html>

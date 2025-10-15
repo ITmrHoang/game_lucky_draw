@@ -1,0 +1,15 @@
+# Bỏ qua node_modules trên máy host
+node_modules
+
+# Bỏ qua các thư mục build của Nuxt
+.nuxt
+.output
+dist
+
+# Bỏ qua thư mục chứa database (vì ta sẽ mount nó)
+workspace
+
+# Bỏ qua các file log và file cấu hình Docker
+*.log
+Dockerfile
+docker-compose.yml

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    .combination-lock {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1000px; /* Tạo chiều sâu cho không gian 3D */
+}
+
+.dial-container {
+  margin: 0 10px;
+  width: 80px;
+  height: 120px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.dial {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+}
+
+.digit {
+  position: absolute;
+  width: 80px;
+  height: 120px;
+  line-height: 120px;
+  text-align: center;
+  font-size: 48px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  backface-visibility: hidden; /* Ẩn mặt sau của các con số */
+}
+  </style>
+</head>
+<body>
+  <div class="combination-lock">
+  <div class="dial-container">
+    <div class="dial" id="dial1">
+      <div class="digit">0</div>
+      <div class="digit">1</div>
+      <div class="digit">2</div>
+      <div class="digit">3</div>
+      <div class="digit">4</div>
+      <div class="digit">5</div>
+      <div class="digit">6</div>
+      <div class="digit">7</div>
+      <div class="digit">8</div>
+      <div class="digit">9</div>
+    </div>
+  </div>
+  <div class="dial-container">
+    <div class="dial" id="dial2">
+      <div class="digit">0</div>
+      <div class="digit">1</div>
+      <div class="digit">2</div>
+      <div class="digit">3</div>
+      <div class="digit">4</div>
+      <div class="digit">5</div>
+      <div class="digit">6</div>
+      <div class="digit">7</div>
+      <div class="digit">8</div>
+      <div class="digit">9</div>
+    </div>
+  </div>
+  <div class="dial-container">
+    <div class="dial" id="dial3">
+      <div class="digit">0</div>
+      <div class="digit">1</div>
+      <div class="digit">2</div>
+      <div class="digit">3</div>
+      <div class="digit">4</div>
+      <div class="digit">5</div>
+      <div class="digit">6</div>
+      <div class="digit">7</div>
+      <div class="digit">8</div>
+      <div class="digit">9</div>
+    </div>
+  </div>
+</div>
+<div>
+  <pre>
+CSS:
+perspective: Tạo không gian 3D để các đối tượng có chiều sâu.[1]
+transform-style: preserve-3d: Đảm bảo các phần tử con của .dial-container và .dial được hiển thị trong không gian 3D.
+transform: rotateX(): Được sử dụng để xoay các vòng số quanh trục X.[2][3]
+backface-visibility: hidden: Ẩn mặt sau của các con số khi chúng bị xoay đi.
+  </pre>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+  const dials = document.querySelectorAll('.dial');
+
+  dials.forEach(dial => {
+    const digits = dial.querySelectorAll('.digit');
+    const numDigits = digits.length;
+    const angle = 360 / numDigits;
+
+    digits.forEach((digit, index) => {
+      digit.style.transform = `rotateX(${angle * index}deg) translateZ(150px)`;
+    });
+
+    let isDragging = false;
+    let startY, startRotation = 0;
+
+    dial.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startY = e.clientY;
+      const currentTransform = window.getComputedStyle(dial).getPropertyValue('transform');
+      if (currentTransform !== 'none') {
+        const matrix = new DOMMatrix(currentTransform);
+        startRotation = Math.round(Math.atan2(matrix.m23, matrix.m22) * (180 / Math.PI));
+      } else {
+        startRotation = 0;
+      }
+      dial.style.transition = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaY = e.clientY - startY;
+      const newRotation = startRotation + deltaY;
+      dial.style.transform = `rotateX(${newRotation}deg)`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      dial.style.transition = 'transform 0.5s';
+      const currentTransform = window.getComputedStyle(dial).getPropertyValue('transform');
+      const matrix = new DOMMatrix(currentTransform);
+      const currentRotation = Math.round(Math.atan2(matrix.m23, matrix.m22) * (180 / Math.PI));
+      const nearestAngle = Math.round(currentRotation / angle) * angle;
+      dial.style.transform = `rotateX(${nearestAngle}deg)`;
+    });
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+services:
+  nuxt-app:
+    # Build image từ Dockerfile trong thư mục hiện tại
+    build: .
+    container_name: nuxt_sqlite_app
+
+    ports:
+      # Ánh xạ port 3000 của container ra port 3000 trên máy host
+      - "3000:3000"
+
+    volumes:
+      # Ánh xạ thư mục hiện tại (chứa code Nuxt) vào /app trong container
+      # Giúp cho việc hot-reload hoạt động
+      - .:/app
+
+      # Trick quan trọng: Ngăn không cho node_modules trên máy host
+      # ghi đè lên node_modules đã được cài đặt bên trong container
+      - /app/node_modules
+
+      # Ánh xạ thư mục ./workspace trên máy host vào /app/workspace trong container
+      # Đây là nơi file SQLite sẽ được lưu trữ
+      - ./workspace:/app/workspace
+
+    environment:
+      # Bắt buộc Nuxt chạy trên host 0.0.0.0 để có thể truy cập từ bên ngoài container
+      - NUXT_HOST=0.0.0.0
+      # Biến môi trường để chỉ đường dẫn tới file DB
+      - DATABASE_PATH=/app/workspace/dev.db
+
+    # Giữ cho container chạy (hữu ích cho debugging)
+    stdin_open: true
+    tty: true
