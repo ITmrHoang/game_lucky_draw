@@ -1,0 +1,17 @@
+1	giao diên quay số hiệu ứng quay như kengsington lock					
+2	trong giao diện quay cho phép setting background nền đằng sau, nâng cao kéo thả cài đặt vị trí các ảnh phần thưởng mùa giải					
+3	giao diện quay số có  nút Hamburger Menu để hiện danh sách các giải đẻ chọn quay, giải nào quay rồi sẽ disabled với giải chỉ định, giả ramdom thì cho phép quay thêm lượt có modal confirm					
+	tham khảo menu như trong https://moshang-ax.github.io/lottery/					
+	các giải có thể có 1 hoặc nhiều người trúng tương ứng số lượt quay của giải vios dụ đặc biệt một người, nhất một  người, nhì 2 người ....					
+	có config người trúng giải rồi thì sẽ không trúng giải sau nữa trúng giải khác nữa					
+4	Quay số sau khi quay số xong sẽ hiển thị tên khách hàng trúng giải với mã code đó					
+	1 người có thể có nhiều mà code quay số nên cần db relationship nếu người đó trúng rồi sẽ loại toàn bộ code người đó khỏi danh sách nếu là giải ramdom					
+						
+5	cho phép import file execl người  và mã code tương ứng - trang cấu hình người trúng giải của các giải thưởng  export danh sách người trúng					
+6	trang lịch sử đã trúng giải của lượt giải chỉ định  - các lượt khác nhau sẽ cài phần thưởng khác nhau và cấu hình người trúng riêng ( mặc định là lấy lượt mới nhất, và có trang vào lượt quay tứng ứng đó					
+						
+	note cơ bản chỉ cần giải gần nhất xong nút reset để cài lại cũng được không cần các lượt 					
+						
+	dùng sqlite làm database , nuxt render fe => build to docker					
+						
+	https://github.com/ITmrHoang/game_lucky_draw/blob/master/lucky_draw.html					

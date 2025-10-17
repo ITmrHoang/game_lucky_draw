@@ -73,3 +73,27 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+create pass hash:
+node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
+
+env : ADMIN_PASSWORD_HASH
+
+
+# What I added:
+PWA:
+public/manifest.webmanifest and public/sw.js
+Registers service worker in app/app.vue
+Adds manifest link in nuxt.config.ts
+Production Docker:
+DockerFileBuild multi-stage build using Nuxt .output server
+Build/run:
+Local PWA dev:
+```
+npm i
+npm run dev```
+Docker build:
+```
+docker build -f DockerFileBuild -t lucky-draw:prod .
+docker run -p 3000:3000 --env ADMIN_PASSWORD_HASH=<sha256> --env ADMIN_SESSION_SECRET=<secret> lucky-draw:prod
+```
