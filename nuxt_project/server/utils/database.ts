@@ -1,8 +1,14 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+  console.log(import.meta.url); 
 
 // Lấy đường dẫn file DB từ biến môi trường
 const dbPath = process.env.DATABASE_PATH || './workspace/dev.db';
-
+// const folder = path.resolve('./workspace');
+// if (!fs.existsSync(folder)) {
+//   fs.mkdirSync(folder, { recursive: true }); // tạo folder nếu chưa có
+// }
 // Tạo một instance duy nhất (singleton) của database
 export const db = new Database(dbPath);
 

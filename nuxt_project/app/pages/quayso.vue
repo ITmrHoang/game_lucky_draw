@@ -144,12 +144,5 @@ dialog { border: none; border-radius: 10px; padding: 16px; }
 /* Minimal styles for the counter container resemblance */
 </style>
 
-<template #components>
-  <KensingtonCounter />
-</template>
-
-<!-- Kensington-style Counter component -->
-<script lang="ts" setup name="KensingtonCounter">
-</script>
 
 

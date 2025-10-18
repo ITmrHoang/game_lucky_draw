@@ -1,3 +1,5 @@
+
+  console.log(import.meta.url); 
 import { db } from '~/server/utils/database';
 
 export default defineEventHandler(async (event) => {
